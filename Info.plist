@@ -6,5 +6,9 @@
     <true/>
     <key>CFBundleIconFile</key>
     <string>Kalendar</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Kalendar needs access to display your calendar events.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>Kalendar needs access to display your reminders.</string>
 </dict>
 </plist>
