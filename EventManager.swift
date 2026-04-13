@@ -11,24 +11,37 @@ class EventManager: ObservableObject {
     private let calendar = Calendar.current
 
     init() {
+        // Check existing authorization first
+        if #available(macOS 14.0, *) {
+            calendarAccess = EKEventStore.authorizationStatus(for: .event) == .fullAccess
+            reminderAccess = EKEventStore.authorizationStatus(for: .reminder) == .fullAccess
+        } else {
+            calendarAccess = EKEventStore.authorizationStatus(for: .event) == .authorized
+            reminderAccess = EKEventStore.authorizationStatus(for: .reminder) == .authorized
+        }
         requestAccess()
     }
 
     func requestAccess() {
+        let onEventsGranted: (Bool, Error?) -> Void = { granted, _ in
+            DispatchQueue.main.async {
+                self.calendarAccess = granted
+                if granted { self.fetchEvents(for: Date()) }
+            }
+        }
+        let onRemindersGranted: (Bool, Error?) -> Void = { granted, _ in
+            DispatchQueue.main.async {
+                self.reminderAccess = granted
+                if granted { self.fetchReminders(for: Date()) }
+            }
+        }
+
         if #available(macOS 14.0, *) {
-            store.requestFullAccessToEvents { granted, _ in
-                DispatchQueue.main.async { self.calendarAccess = granted }
-            }
-            store.requestFullAccessToReminders { granted, _ in
-                DispatchQueue.main.async { self.reminderAccess = granted }
-            }
+            store.requestFullAccessToEvents(completion: onEventsGranted)
+            store.requestFullAccessToReminders(completion: onRemindersGranted)
         } else {
-            store.requestAccess(to: .event) { granted, _ in
-                DispatchQueue.main.async { self.calendarAccess = granted }
-            }
-            store.requestAccess(to: .reminder) { granted, _ in
-                DispatchQueue.main.async { self.reminderAccess = granted }
-            }
+            store.requestAccess(to: .event, completion: onEventsGranted)
+            store.requestAccess(to: .reminder, completion: onRemindersGranted)
         }
     }
 
